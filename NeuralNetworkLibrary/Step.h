@@ -4,7 +4,7 @@
 namespace NeuralNetworkNative
 {
 	class Weights;
-	class Step
+	class __LENETLIB_DLLEXPORT Step
 	{
 	public:
 		std::vector<double> Output;
@@ -19,6 +19,8 @@ namespace NeuralNetworkNative
 		void PropogateForward();
 		void PropogateBackwards();
 
+		void CopyOutputs(double* destination) const;
+	
 		virtual Weights* getWeights() = 0;
 		virtual double CalculateActivation(double weightedInputs);
 		virtual double CalculateActivationDerivative(double weightedInputs);
@@ -31,5 +33,7 @@ namespace NeuralNetworkNative
 
 	private:
 		bool isPreTraining;
+		bool wasPreTraining;
+		void LazySetPreTraining();
 	};
 }

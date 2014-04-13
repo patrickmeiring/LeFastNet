@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NeuralNetworkCLI;
+using System.Windows.Forms;
 
 namespace NeuralNetworkOCR
 {
@@ -13,8 +14,10 @@ namespace NeuralNetworkOCR
         {
             LeNetTrainer trainer = new LeNetTrainer();
             trainer.Initialise();
-            trainer.Train();
-            
+            trainer.TrainAsync();
+
+            ObservationForm observationForm = new ObservationForm(trainer.Snapshot);
+            Application.Run(observationForm);
         }
     }
 }

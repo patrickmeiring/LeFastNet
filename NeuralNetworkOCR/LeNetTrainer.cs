@@ -9,26 +9,34 @@ namespace NeuralNetworkOCR
 {
     class LeNetTrainer
     {
+        public LeNetNetwork Network { get; private set; }
+        IList<DataSetItem> trainingDataSet;
+        IList<DataSetItem> generalisationDataSet;
+        public LeNetSnapshot Snapshot { get; private set; }
+
+        int epochCorrect;
+        int epochTotal;
+
         public LeNetTrainer()
         {
 
         }
 
+
         public void Initialise()
         {
             Console.WriteLine("Loading Training Data Set...");
             
-            TrainingDataSet = DataSets.GetTrainingSet().Randomise(0);
+            trainingDataSet = DataSets.GetTrainingSet().Randomise(0);
             Console.WriteLine("Loading Generalisation Data Set...");
-            GeneralisationDataSet = DataSets.GetGeneralisationSet().Randomise(1);
+            generalisationDataSet = DataSets.GetGeneralisationSet().Randomise(1);
 
-            Console.WriteLine("Creating LeNet...");
-            //Network = new LeNetNetwork('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
-            //Snapshot = new LeNetSnapshot(Network);           
+            Console.WriteLine("Creating LeNet...");         
             LeNetConfiguration configuration = LeNetConfigurations.FromCharacters('0', '1', '2', '3', '4', '5', '6', '7', '8', '9');
             Network = new LeNetNetwork(configuration);
+            Snapshot = new LeNetSnapshot(Network);
 
-            Network.LearningRate = 0.0005 / 8.0;
+            Network.LearningRate = 0.0005 / 16.0;
             Network.Mu = 0.02;
             bool isPreTraining = Network.IsPreTraining;
         }
@@ -49,9 +57,13 @@ namespace NeuralNetworkOCR
                 Console.WriteLine("Run Epoch {0} with LC {1}", i, Network.LearningRate);
 
                 Network.IsPreTraining = true;
-                DoEpoch(TrainingDataSet.Take(500));
+                DoEpoch(trainingDataSet.Take(500));
+                Console.WriteLine();
+
                 Network.IsPreTraining = false;
-                DoEpoch(TrainingDataSet);
+                DoEpoch(trainingDataSet);
+                Console.WriteLine();
+
                 Network.LearningRate *= 0.90;
             }
             Console.WriteLine("Complete.");
@@ -59,32 +71,51 @@ namespace NeuralNetworkOCR
 
         protected void DoEpoch(IEnumerable<DataSetItem> trainItems)
         {
-            int correct = 0;
-            int total = 0;
+            StartEpoch();
             foreach (DataSetItem item in trainItems)
             {
                 TrainingResults result = Network.Train(item);
 
-                if (result.Correct) correct++;
-                total++;
-
-                if (total % 10 == 0) UpdateStatus(correct, total);
+                ItemTrained(result);
+                UpdateSnapshot();
             }
-            Console.WriteLine();
         }
 
-        private void UpdateStatus(int itemsCorrect, int itemsProcessed)
+        private void StartEpoch()
         {
-            double currentAccuracy = (itemsCorrect * 100.0) / ((double)itemsProcessed);
+            epochCorrect = 0;
+            epochTotal = 0;
+        }
+
+        private void ItemTrained(TrainingResults result)
+        {
+            if (result.Correct)
+            {
+                epochCorrect++;
+            }
+            epochTotal++;
+
+            if (epochTotal % 10 == 0)
+            {
+                UpdateStatus();
+            }
+        }
+
+        private void UpdateSnapshot()
+        {
+            if (Snapshot.UpdateRequested)
+            {
+                Snapshot.UpdateSnapshot();
+            }
+        }
+
+        private void UpdateStatus()
+        {
+            double currentAccuracy = (epochCorrect * 100.0) / ((double)epochTotal);
             Console.CursorLeft = 0;
             Console.CursorTop -= 1;
-            Console.WriteLine(currentAccuracy.ToString("000.00") + "% on " + itemsProcessed.ToString() + " items.       ");
-
-
+            Console.WriteLine(currentAccuracy.ToString("000.00") + "% on " + epochTotal.ToString() + " items.       ");
         }
 
-        LeNetNetwork Network;
-        IList<DataSetItem> TrainingDataSet;
-        IList<DataSetItem> GeneralisationDataSet;
     }
 }

@@ -3,7 +3,7 @@
 
 using namespace NeuralNetworkNative;
 
-LeNetNetwork::LeNetNetwork(const LeNetConfiguration &configuration) : configuration(configuration)
+LeNetNetwork::LeNetNetwork(const LeNetConfiguration &configuration) : configuration(configuration), allSteps(), firstConvolutions(FirstConvolutionCount), firstSubsampling(FirstConvolutionCount), secondConvolutions(SecondConvolutionCount), secondSubsampling(SecondConvolutionCount)
 {
 	learningRate = 0.0;
 	mu = 0.0;
@@ -13,8 +13,12 @@ LeNetNetwork::LeNetNetwork(const LeNetConfiguration &configuration) : configurat
 
 void LeNetNetwork::CreateNetwork()
 {
-	InstanciateSteps();
-	CreateStepLists();
+	CreateInputStep();
+	CreateFirstConvolutionStep();
+	CreateFirstSubsamplingStep();
+	CreateSecondConvolutionStep();
+	CreateSecondSubsamplingStep();
+	CreateConsolidationAndOutputSteps();
 }
 
 const int LeNetNetwork::FirstConvolutionCount = 6;
@@ -46,46 +50,78 @@ const std::vector<bool> LeNetNetwork::SecondConvolutionConnections = {
 const int LeNetNetwork::ConsolidationNeurons = 120;
 const int LeNetNetwork::OutputFeedForwardNeurons = 84;
 
-void LeNetNetwork::InstanciateSteps()
+void LeNetNetwork::CreateInputStep()
 {
 	inputLayer = new InputStep(32, 32);
-	firstConvolutions = std::vector<ConvolutionStep*>(FirstConvolutionCount);
-	firstSubsampling = std::vector<SubsamplingStep*>(FirstConvolutionCount);
+
+}
+
+void LeNetNetwork::CreateFirstConvolutionStep()
+{
 	for (int i = 0; i < FirstConvolutionCount; i++)
 	{
 		ConvolutionStep* convolutionStep = new ConvolutionStep(*inputLayer, FirstConvolutionSize);
 		firstConvolutions[i] = convolutionStep;
-		firstSubsampling[i] = new SubsamplingStep(*convolutionStep, 2);	
 	}
 
-	secondConvolutions = std::vector<ConvolutionStep*>(SecondConvolutionCount);
-	secondSubsampling = std::vector<SubsamplingStep*>(SecondConvolutionCount);
+	allSteps.reserve(allSteps.size() + firstConvolutions.size());
+	allSteps.insert(allSteps.end(), firstConvolutions.begin(), firstConvolutions.end());
+}
+
+void LeNetNetwork::CreateFirstSubsamplingStep()
+{
+	for (int i = 0; i < FirstConvolutionCount; i++)
+	{
+		ConvolutionStep* convolutionStep = firstConvolutions[i];
+		firstSubsampling[i] = new SubsamplingStep(*convolutionStep, 2);
+	}
+
+	allSteps.reserve(allSteps.size() + firstSubsampling.size());
+	allSteps.insert(allSteps.end(), firstSubsampling.begin(), firstSubsampling.end());
+}
+
+void LeNetNetwork::CreateSecondConvolutionStep()
+{
 	for (int i = 0; i < SecondConvolutionCount; i++)
 	{
-		std::vector<RectangularStep*> inputs = std::vector<RectangularStep*>();
+		std::vector<RectangularStep*> stepInputs = std::vector<RectangularStep*>();
 		for (int j = 0; j < FirstConvolutionCount; j++)
 		{
 			if (SecondConvolutionConnections[i * FirstConvolutionCount + j])
-				inputs.push_back(firstSubsampling[j]);
+				stepInputs.push_back(firstSubsampling[j]);
 		}
-		ConvolutionStep* convolutionStep = new ConvolutionStep(inputs, SecondConvolutionSize);
+		ConvolutionStep* convolutionStep = new ConvolutionStep(stepInputs, SecondConvolutionSize);
 		secondConvolutions[i] = convolutionStep;
+	}
+
+	allSteps.reserve(allSteps.size() + secondConvolutions.size());
+	allSteps.insert(allSteps.end(), secondConvolutions.begin(), secondConvolutions.end());
+}
+
+void LeNetNetwork::CreateSecondSubsamplingStep()
+{
+	for (int i = 0; i < SecondConvolutionCount; i++)
+	{
+		ConvolutionStep* convolutionStep = secondConvolutions[i];
 		secondSubsampling[i] = new SubsamplingStep(*convolutionStep, 2);
 	}
 
-	consolidation = new FeedForwardStep(*((std::vector<Step*>*)&secondSubsampling), 120);
-	output = new FeedForwardStep(*consolidation, OutputFeedForwardNeurons);
-	marking = new MarkingStep(*output, configuration);
+	allSteps.reserve(allSteps.size() + secondSubsampling.size());
+	allSteps.insert(allSteps.end(), secondSubsampling.begin(), secondSubsampling.end());
 }
 
-void LeNetNetwork::CreateStepLists()
+void LeNetNetwork::CreateConsolidationAndOutputSteps()
 {
-	allSteps = std::vector<Step*>();
-	allSteps.reserve(firstConvolutions.size() + firstSubsampling.size() + secondConvolutions.size() + secondSubsampling.size());
-	allSteps.insert(allSteps.end(), firstConvolutions.begin(), firstConvolutions.end());
-	allSteps.insert(allSteps.end(), firstSubsampling.begin(), firstSubsampling.end());
-	allSteps.insert(allSteps.end(), secondConvolutions.begin(), secondConvolutions.end());
-	allSteps.insert(allSteps.end(), secondSubsampling.begin(), secondSubsampling.end());
+	std::vector<Step*> consolidationInputs = std::vector<Step*>(SecondConvolutionCount);
+	for (int i = 0; i < SecondConvolutionCount; i++)
+	{
+		consolidationInputs[i] = secondSubsampling[i];
+	}
+
+	consolidation = new FeedForwardStep(consolidationInputs, 120);
+	output = new FeedForwardStep(*consolidation, OutputFeedForwardNeurons);
+	marking = new MarkingStep(*output, configuration);
+
 	allSteps.push_back(consolidation);
 	allSteps.push_back(output);
 	allSteps.push_back(marking);
@@ -155,9 +191,55 @@ void LeNetNetwork::setMu(double mu)
 		(*si)->getWeights()->setMu(mu);
 }
 
+const InputStep* LeNetNetwork::getInputStep()
+{
+	return inputLayer;
+}
+
+const ConvolutionStep *const * LeNetNetwork::getFirstConvolutions()
+{
+	const ConvolutionStep** result = new const ConvolutionStep*[FirstConvolutionCount];
+	for (int i = 0; i < FirstConvolutionCount; i++)
+		result[i] = firstConvolutions[i];
+	return result;
+}
+
+const SubsamplingStep *const * LeNetNetwork::getFirstSubsampling()
+{
+	const SubsamplingStep** result = new const SubsamplingStep*[FirstConvolutionCount];
+	for (int i = 0; i < FirstConvolutionCount; i++)
+		result[i] = firstSubsampling[i];
+	return result;
+}
+
+const ConvolutionStep *const * LeNetNetwork::getSecondConvolutions()
+{
+	const ConvolutionStep** result = new const ConvolutionStep*[SecondConvolutionCount];
+	for (int i = 0; i < SecondConvolutionCount; i++)
+		result[i] = secondConvolutions[i];
+	return result;
+}
+
+const SubsamplingStep*const * LeNetNetwork::getSecondSubsampling()
+{
+	const SubsamplingStep** result = new const SubsamplingStep*[SecondConvolutionCount];
+	for (int i = 0; i < SecondConvolutionCount; i++)
+		result[i] = secondSubsampling[i];
+	return result;
+}
+
+const FeedForwardStep* LeNetNetwork::getConsolidationStep()
+{
+	return consolidation;
+}
+
+const FeedForwardStep* LeNetNetwork::getOutputStep()
+{
+	return output;
+}
+
 LeNetNetwork::~LeNetNetwork()
 {
-//	configuration.~LeNetConfiguration();
 	delete inputLayer;
 	inputLayer = nullptr;
 	for (auto si = allSteps.begin(), se = allSteps.end(); si != se; ++si)

@@ -155,24 +155,30 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DataSetItem.h" />
+    <ClInclude Include="FlatStep.h" />
     <ClInclude Include="LeNetConfiguration.h" />
     <ClInclude Include="LeNetNetwork.h" />
+    <ClInclude Include="RectangularStep.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stdafx.h" />
+    <ClInclude Include="Step.h" />
     <ClInclude Include="TrainingResults.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="DataSetItem.cpp" />
+    <ClCompile Include="FlatStep.cpp" />
     <ClCompile Include="LeNetConfiguration.cpp" />
     <ClCompile Include="LeNetNetwork.cpp" />
     <ClCompile Include="NeuralNetworkCLI.cpp" />
+    <ClCompile Include="RectangularStep.cpp" />
     <ClCompile Include="Stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="Step.cpp" />
     <ClCompile Include="TrainingResults.cpp" />
   </ItemGroup>
   <ItemGroup>

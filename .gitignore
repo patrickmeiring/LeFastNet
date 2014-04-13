@@ -26,6 +26,7 @@ NeuralNetworkLibrary/x64/
 NeuralNetworkOCR/bin/x64/
 NeuralNetworkOCR/bin/x86/
 
+# Visual Studio files
 *.sdf
 *.suo
-
+*.opensdf

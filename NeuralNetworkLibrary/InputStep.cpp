@@ -9,7 +9,7 @@ InputStep::InputStep(int width, int height) : RectangularStep(width, height, std
 
 void InputStep::setInputs(const double* inputs)
 {
-	memcpy(&Output[0], inputs, sizeof(double) * Output.size());
+	memcpy(&Output[0], inputs, sizeof(double) * Length);
 }
 
 Weights* InputStep::getWeights()

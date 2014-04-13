@@ -8,6 +8,7 @@ Step::Step(int length, const std::vector<Step*> &upstream, bool isFinalLayer) : 
 	assert (length >= 0);
 	
 	isPreTraining = false;
+	wasPreTraining = false;
 	ClearError();
 	ClearState();
 }
@@ -41,6 +42,10 @@ void Step::PropogateBackwards()
 {
 	Weights* weights = getWeights();
 	if (weights == nullptr) return;
+
+	// Lazily start or stop the weights pre-training.
+	LazySetPreTraining();
+
 	if (isPreTraining)
 	{
 		weights->PreTrain(*this);
@@ -52,15 +57,9 @@ void Step::PropogateBackwards()
 	ClearError();
 }
 
-bool Step::getPreTraining()
+void Step::LazySetPreTraining()
 {
-	return isPreTraining;
-}
-
-void Step::setPreTraining(bool value)
-{
-	if (isPreTraining == value) return;
-	isPreTraining = value;
+	if (wasPreTraining == isPreTraining) return;
 
 	Weights* weights = getWeights();
 	if (weights == nullptr) return;
@@ -72,6 +71,18 @@ void Step::setPreTraining(bool value)
 	{
 		weights->CompletePreTraining();
 	}
+	wasPreTraining = isPreTraining;
+}
+
+bool Step::getPreTraining()
+{
+	return isPreTraining;
+}
+
+void Step::setPreTraining(bool value)
+{
+	if (isPreTraining == value) return;
+	isPreTraining = value;
 }
 
 const double X_STRETCH = 2.0 / 3.0;
@@ -94,6 +105,10 @@ double Step::CalculateActivationDerivative(double weightedInputs)
 	return result;
 }
 
+void Step::CopyOutputs(double* destination) const
+{
+	memcpy(destination, &Output[0], sizeof(double) * Length);
+}
 
 Step::~Step()
 {

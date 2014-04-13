@@ -14,4 +14,7 @@
 #include "../NeuralNetworkCLI/LeNetConfiguration.h"
 #include "../NeuralNetworkCLI/DataSetItem.h"
 #include "../NeuralNetworkCLI/TrainingResults.h"
+#include "../NeuralNetworkCLI/Step.h"
+#include "../NeuralNetworkCLI/RectangularStep.h"
+#include "../NeuralNetworkCLI/FlatStep.h"
 #include "../NeuralNetworkCLI/LeNetNetwork.h"

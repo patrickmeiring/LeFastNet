@@ -16,8 +16,14 @@ namespace NeuralNetworkNative
 	{
 	private:
 		void CreateNetwork();
-		void InstanciateSteps();
-		void CreateStepLists();
+		
+		void CreateInputStep();
+		void CreateFirstConvolutionStep();
+		void CreateFirstSubsamplingStep();
+		void CreateSecondConvolutionStep();
+		void CreateSecondSubsamplingStep();
+		void CreateConsolidationAndOutputSteps();
+
 		bool preTraining;
 
 
@@ -57,6 +63,14 @@ namespace NeuralNetworkNative
 		void setPreTraining(bool value);
 		void PropogateForward(DataSetItem &inputs);
 		TrainingResults Train(DataSetItem &inputs);
+
+		const InputStep* getInputStep();
+		const ConvolutionStep *const* getFirstConvolutions();
+		const SubsamplingStep *const* getFirstSubsampling();
+		const ConvolutionStep *const* getSecondConvolutions();
+		const SubsamplingStep *const* getSecondSubsampling();
+		const FeedForwardStep * getConsolidationStep();
+		const FeedForwardStep * getOutputStep();
 
 		LeNetNetwork(const LeNetConfiguration &configuration);
 		virtual ~LeNetNetwork();
