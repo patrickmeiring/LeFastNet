@@ -26,6 +26,7 @@ namespace NeuralNetworkNative
 
 		bool preTraining;
 
+		int classIndexOf(wchar_t character);
 
 	protected:
 		InputStep* inputLayer;

@@ -27,9 +27,14 @@ const int LeNetNetwork::FirstConvolutionSize = 5;
 const int LeNetNetwork::SecondConvolutionCount = 16;
 const int LeNetNetwork::SecondConvolutionSize = 5;
 
+// An array specifying which six first subsampling steps are connected to which second convolution steps.
 const std::vector<bool> LeNetNetwork::SecondConvolutionConnections = {
+	// Second Convolution step 1 is connected to first subsampling steps 1 to 3 inclusive.
 	true, true, true, false, false, false,
+
+	// Second Convolution step 2 is connected to first subsampling steps 2 to 4 inclusive...
 	false, true, true, true, false, false,
+
 	false, false, true, true, true, false,
 	false, false, false, true, true, true,
 	true, false, false, false, true, true,
@@ -84,10 +89,14 @@ void LeNetNetwork::CreateSecondConvolutionStep()
 {
 	for (int i = 0; i < SecondConvolutionCount; i++)
 	{
+		// The subsampling steps the current second convolution step is connected to. 
 		std::vector<RectangularStep*> stepInputs = std::vector<RectangularStep*>();
 		for (int j = 0; j < FirstConvolutionCount; j++)
 		{
-			if (SecondConvolutionConnections[i * FirstConvolutionCount + j])
+			bool connected = SecondConvolutionConnections[i * FirstConvolutionCount + j];
+
+			// Add the subsampling step if it is connected to the current convolution step.
+			if (connected)
 				stepInputs.push_back(firstSubsampling[j]);
 		}
 		ConvolutionStep* convolutionStep = new ConvolutionStep(stepInputs, SecondConvolutionSize);
@@ -112,6 +121,7 @@ void LeNetNetwork::CreateSecondSubsamplingStep()
 
 void LeNetNetwork::CreateConsolidationAndOutputSteps()
 {
+	// The final subsampling steps the consolidation step is connected to.
 	std::vector<Step*> consolidationInputs = std::vector<Step*>(SecondConvolutionCount);
 	for (int i = 0; i < SecondConvolutionCount; i++)
 	{
@@ -151,20 +161,27 @@ void LeNetNetwork::PropogateForward(DataSetItem &inputs)
 
 TrainingResults LeNetNetwork::Train(DataSetItem &inputs)
 {
+	int correctClass = classIndexOf(inputs.Character);
+	if (correctClass < 0) return TrainingResults();
+	
 	PropogateForward(inputs);
-	int correctClass = -1;
-	wchar_t* characters = configuration.Characters;
-	for (int i = 0; i < configuration.ClassCount; i++){
-		if (characters[i] == inputs.Character)
-		{
-			correctClass = i;
-			break;
-		}
-	}
+	
 	marking->setCorrectClass(correctClass);
 	for (auto si = allSteps.rbegin(), se = allSteps.rend(); si != se; ++si)
 		(*si)->PropogateBackwards();
 	return CreateResults(marking->Output, correctClass);
+}
+
+int LeNetNetwork::classIndexOf(wchar_t character)
+{
+	wchar_t* characters = configuration.Characters;
+	for (int i = 0; i < configuration.ClassCount; i++){
+		if (characters[i] == character)
+		{
+			return i;
+		}
+	}
+	return -1;
 }
 
 double LeNetNetwork::getLearningRate()
